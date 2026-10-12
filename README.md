@@ -1,9 +1,7 @@
 # KNJ Internet Monitor
 
-Monitorea la conectividad HTTP nominalmente cada 3 segundos mientras Chrome está abierto. Confirma la pérdida y la recuperación de conexión con dos mediciones consecutivas, muestra alertas de Chrome solo cuando cambia el estado confirmado y permite activar/desactivar las alertas de calidad. Mantiene el popup cerrado y conserva 100 mediciones locales.
+Monitor HTTP automático cada 3 segundos desde un documento offscreen independiente del panel. Guarda 100 mediciones, muestra hora de la última prueba y envía notificaciones de cambios de conectividad confirmados por dos pruebas. El service worker recibe los resultados para gestionar icono y notificaciones.
 
-## Instalar
-Descargar ZIP del repositorio, descomprimir, abrir chrome://extensions, activar Modo desarrollador y elegir Cargar descomprimida. Habilitar notificaciones de Chrome en Windows.
+Instalación: descargar ZIP, descomprimir, chrome://extensions, Modo desarrollador, Cargar descomprimida. Tras actualizar archivos, pulsar Recargar. Mantener Chrome abierto y permitir notificaciones.
 
-## Limitaciones
-No realiza ping ICMP. La suspensión de Chrome, de la extensión o del equipo puede retrasar las pruebas. Las solicitudes fallidas a los dos servidores de prueba pueden indicar un bloqueo específico y no necesariamente una caída total de Internet. El aviso depende de los permisos de notificación del sistema.
+Si aparece «Monitor sin actividad», abrir Errores en chrome://extensions. Chrome puede suspender procesos o temporizadores y no garantiza 3 segundos exactos. Las mediciones son HTTP, no ping ICMP.
