@@ -38,6 +38,15 @@ module.exports=async(req,res)=>{
    (SELECT MAX(observed_at) FROM sampled) AS last_sample`;
   const totals=(await client.query(query,[deviceId,days])).rows[0];
   const series=(await client.query(`SELECT date_trunc('hour',observed_at) AS bucket,COUNT(*)::int AS samples,COUNT(*) FILTER (WHERE online)::int AS online_samples,ROUND(AVG(latency_ms) FILTER (WHERE online))::int AS latency FROM internet_measurements WHERE device_id=$1 AND observed_at>=NOW()-($2::int*INTERVAL '1 day') GROUP BY 1 ORDER BY 1`,[deviceId,days])).rows;
-  return res.status(200).json({ok:true,days,totals,series});
+  const interval=days===1?"5 minutes":days===7?"30 minutes":"2 hours";
+  const oscillation=(await client.query(`SELECT date_bin($3::interval,observed_at,TIMESTAMPTZ '2000-01-01') AS bucket,
+    COUNT(*)::int AS samples, COUNT(*) FILTER (WHERE online)::int AS online_samples,
+    ROUND(AVG(latency_ms) FILTER (WHERE online))::int AS avg_ms,
+    MIN(latency_ms) FILTER (WHERE online) AS min_ms,
+    MAX(latency_ms) FILTER (WHERE online) AS max_ms,
+    ROUND(STDDEV_POP(latency_ms) FILTER (WHERE online))::int AS jitter_ms
+    FROM internet_measurements WHERE device_id=$1 AND observed_at>=NOW()-($2::int*INTERVAL '1 day')
+    GROUP BY 1 ORDER BY 1`,[deviceId,days,interval])).rows;
+  return res.status(200).json({ok:true,days,totals,series,oscillation});
  }catch(e){console.error("Stats SQL error",{code:e.code||"unknown"});return res.status(503).json({error:"stats_unavailable",sqlstate:e.code||null})}finally{if(client)client.release()}
 };

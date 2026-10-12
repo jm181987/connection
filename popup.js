@@ -50,6 +50,7 @@ async function loadStats(){
   $("statsOutages").textContent=String(t.outage_count||0);
   const seconds=Number(t.outage_seconds||0);
   $("statsDuration").textContent=seconds>=3600?(seconds/3600).toFixed(1)+" h":seconds>=60?Math.round(seconds/60)+" min":seconds+" s";
+  drawOscillation(body.oscillation||[]);
   $("statsBars").replaceChildren();
   const series=body.series||[];
   const step=Math.max(1,Math.ceil(series.length/48));
@@ -98,3 +99,30 @@ $("authLogout").addEventListener("click",async()=>{
  if(authToken)fetch("https://connection-smoky.vercel.app/api/auth",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+authToken},body:JSON.stringify({action:"logout"})}).catch(()=>{});
 });
 authView();
+
+function drawOscillation(points){
+ const svg=$("latencyChart"),ns="http://www.w3.org/2000/svg";
+ svg.replaceChildren();
+ const make=(name,attrs)=>{const e=document.createElementNS(ns,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));svg.append(e);return e};
+ const valid=points.filter(p=>p.avg_ms!==null&&p.avg_ms!==undefined);
+ if(!points.length){$("oscillationSummary").textContent="No hay datos en este período";return}
+ const values=valid.map(p=>Number(p.max_ms||p.avg_ms)),cap=Math.max(150,Math.min(3000,Math.ceil((Math.max(0,...values)*1.1)/50)*50));
+ const W=600,H=190,left=38,right=10,top=12,bottom=26,w=W-left-right,h=H-top-bottom;
+ const x=i=>left+(points.length===1?w/2:i*w/(points.length-1));
+ const y=ms=>top+h-Math.min(cap,Math.max(0,ms))/cap*h;
+ for(let j=0;j<=4;j++){const v=Math.round(cap*j/4);make("line",{x1:left,y1:y(v),x2:W-right,y2:y(v),stroke:"#2c415b","stroke-width":1});const label=make("text",{x:1,y:y(v)+4,fill:"#a8bbd4","font-size":11});label.textContent=v+" ms"}
+ let previous=null,offline=0,spikes=0;
+ points.forEach((p,i)=>{
+  const px=x(i),total=Number(p.samples||0),up=Number(p.online_samples||0);
+  if(!up){offline++;make("line",{x1:px,y1:top,x2:px,y2:top+h,stroke:"#fb7185","stroke-width":Math.max(2,Math.min(8,w/Math.max(1,points.length))),opacity:.8});previous=null;return}
+  const avg=Number(p.avg_ms),low=Number(p.min_ms),high=Number(p.max_ms),py=y(avg);
+  if(high>=400)spikes++;
+  if(previous){make("line",{x1:previous.x,y1:previous.y,x2:px,y2:py,stroke:"#60a5fa","stroke-width":2})}
+  if(points.length<=150)make("line",{x1:px,y1:y(low),x2:px,y2:y(high),stroke:"#93c5fd","stroke-width":1,opacity:.55});
+  const color=avg<150?"#4ade80":avg<400?"#fbbf24":"#fb7185";
+  const dot=make("circle",{cx:px,cy:py,r:points.length>130?1.6:3,fill:color});
+  const title=document.createElementNS(ns,"title");title.textContent=new Date(p.bucket).toLocaleString()+" · Promedio "+avg+" ms · Mín "+low+" ms · Máx "+high+" ms · Variación "+(p.jitter_ms??"—")+" ms · "+up+"/"+total+" disponibles";dot.append(title);
+  previous={x:px,y:py};
+ });
+ $("oscillationSummary").textContent="Picos de latencia (máx ≥400 ms): "+spikes+" · Intervalos completamente sin respuesta: "+offline+" · Escala hasta "+cap+" ms. Las franjas sin mediciones no se consideran caídas.";
+}
