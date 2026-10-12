@@ -1,11 +1,11 @@
 const {Pool}=require("pg");
+const {userFor,ownDevice}=require("../lib/auth");
 const pool=new Pool({connectionString:process.env.DATABASE_URL,max:3,connectionTimeoutMillis:5000,idleTimeoutMillis:10000,ssl:process.env.PGSSL==="true"?{rejectUnauthorized:true}:undefined});
 module.exports=async(req,res)=>{
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="POST"){res.setHeader("Allow","POST");return res.status(405).json({error:"method_not_allowed"})}
  const secret=process.env.INGEST_API_KEY;
- if(!secret)return res.status(503).json({error:"server_not_configured"});
- if(req.headers.authorization!==`Bearer ${secret}`)return res.status(401).json({error:"unauthorized"});
+
  const body=req.body||{};
  const deviceId=body.deviceId;
  const items=body.measurements;
@@ -18,6 +18,10 @@ module.exports=async(req,res)=>{
  const client=await pool.connect().catch(()=>null);
  if(!client)return res.status(503).json({error:"database_unavailable"});
  try{
+  const user=await userFor(req,client);
+  const legacy=Boolean(secret)&&req.headers.authorization===`Bearer ${secret}`;
+  if(!user&&!legacy)return res.status(401).json({error:"unauthorized"});
+  if(user&&!await ownDevice(client,user.id,deviceId))return res.status(403).json({error:"device_belongs_to_another_user"});
   const params=rows.flat();
   const placeholders=rows.map((_,i)=>"("+[1,2,3,4,5].map(n=>"$"+(i*5+n)).join(",")+")").join(",");
   const result=await client.query("INSERT INTO internet_measurements (device_id,observed_at,online,quality,latency_ms) VALUES "+placeholders+" ON CONFLICT (device_id,observed_at) DO NOTHING",params);

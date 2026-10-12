@@ -1,15 +1,19 @@
 const {Pool}=require("pg");
+const {userFor}=require("../lib/auth");
 const pool=new Pool({connectionString:process.env.DATABASE_URL,max:2,connectionTimeoutMillis:5000,idleTimeoutMillis:10000,ssl:process.env.PGSSL==="true"?{rejectUnauthorized:true}:undefined});
 module.exports=async(req,res)=>{
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="GET"){res.setHeader("Allow","GET");return res.status(405).json({error:"method_not_allowed"})}
- if(!process.env.INGEST_API_KEY)return res.status(503).json({error:"server_not_configured"});
- if(req.headers.authorization!==`Bearer ${process.env.INGEST_API_KEY}`)return res.status(401).json({error:"unauthorized"});
+
  const deviceId=req.query.deviceId,days=Number(req.query.days||1);
  if(typeof deviceId!=="string"||!/^[a-zA-Z0-9_-]{8,80}$/.test(deviceId)||![1,7,30].includes(days))return res.status(400).json({error:"invalid_parameters"});
  let client;
  try{
   client=await pool.connect();
+  const user=await userFor(req,client);
+  if(!user)return res.status(401).json({error:"login_required"});
+  const ownership=await client.query("SELECT 1 FROM monitor_devices WHERE device_id=$1 AND user_id=$2",[deviceId,user.id]);
+  if(!ownership.rowCount)return res.status(403).json({error:"device_not_owned"});
   const query=`WITH sampled AS (
     SELECT observed_at, online, latency_ms,
       lag(observed_at) OVER (ORDER BY observed_at) AS prev_time,
