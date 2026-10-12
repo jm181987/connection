@@ -1,21 +1,13 @@
-# Control Diario
+# Internet Ping Test
 
-Sistema multiempresa de registro y análisis de ventas. Aplicación inicial Next.js.
+Extensión Chrome Manifest V3 para comprobar conectividad y latencia mediante peticiones HTTP (no ICMP).
 
-## Alcance acordado
-- Empresas → gerencias → equipos → vendedores independientes.
-- Roles: administrador, gerente, supervisor, vendedor, analista.
-- Carga por cantidad diaria y ventas individuales sin estados ni metas.
-- Consolidación sin duplicar ventas: las ventas individuales explícitamente incluidas en el total diario no se suman de nuevo.
-- Auditoría, rankings, reportes e importación histórica de Excel.
+## Instalar
+1. Descargar el repositorio y descomprimirlo.
+2. Abrir `chrome://extensions`.
+3. Activar **Modo desarrollador**.
+4. Pulsar **Cargar descomprimida** y seleccionar la carpeta del repositorio.
 
-## Inicio local
-1. `npm install`
-2. Crear `.env.local` a partir de `.env.example` (nunca subir credenciales).
-3. `npm run dev`
+El test se ejecuta al instalar, al iniciar el navegador, cada minuto y al pulsar **Probar ahora**. Guarda localmente las últimas 30 mediciones. No necesita servidor ni base de datos.
 
-## Base de datos
-El diseño inicial está en `db/schema.sql`. **No ejecutar automáticamente contra una base existente**: verificar respaldos, privilegios y compatibilidad antes de aplicar. No se han aplicado migraciones.
-
-## Pendiente antes de producción
-Autenticación segura y autorización en servidor, controles por empresa, migraciones versionadas, conciliación de registros, importador con vista previa y pruebas, dashboards conectados, conexión y despliegue Vercel. La página actual es un punto de partida, no un sistema operativo.
+Los tiempos HTTP son aproximados y no representan un ping ICMP real.
