@@ -9,7 +9,7 @@ module.exports=async(req,res)=>{
  const body=req.body||{};
  const deviceId=body.deviceId;
  const items=body.measurements;
- if(typeof deviceId!=="string"||!/^[a-zA-Z0-9_-]{8,80}$/.test(deviceId)||!Array.isArray(items)||items.length<1||items.length>100)return res.status(400).json({error:"invalid_payload"});
+ if(typeof deviceId!=="string"||!/^[a-zA-Z0-9_-]{8,80}$/.test(deviceId)||!Array.isArray(items)||items.length<1||items.length>100)return res.status(400).json({error:"invalid_payload",detail:typeof deviceId!=="string"?"missing_device_id":!Array.isArray(items)?"missing_measurements":"invalid_device_id_or_batch"});
  const rows=[];
  for(const item of items){
   if(!item||!Number.isSafeInteger(item.time)||item.time<Date.now()-90*86400000||item.time>Date.now()+300000||typeof item.ok!=="boolean"||!["good","fair","poor","offline"].includes(item.quality)||item.ok===(item.quality==="offline")||!(item.ms===null||Number.isInteger(item.ms)&&item.ms>=0&&item.ms<=120000)||item.ok&&item.ms===null||!item.ok&&item.ms!==null)return res.status(400).json({error:"invalid_measurement"});

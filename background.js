@@ -17,11 +17,13 @@ async function syncMeasurements(){
   const d=await chrome.storage.local.get(["dbEnabled","dbApiKey","dbDeviceId","dbQueue"]);
   if(!d.dbEnabled||!d.dbApiKey)return {ok:false,error:"Configurá la clave y activá PostgreSQL"};
   const queue=d.dbQueue||[];
+  const deviceId=/^[a-zA-Z0-9_-]{8,80}$/.test(d.dbDeviceId||"")?d.dbDeviceId:"knj-"+crypto.randomUUID();
+  if(deviceId!==d.dbDeviceId)await chrome.storage.local.set({dbDeviceId:deviceId});
   if(!queue.length)return {ok:true,sent:0,pending:0};
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
   let response;
-  try{response=await fetch(API_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+d.dbApiKey},body:JSON.stringify({deviceId:d.dbDeviceId,measurements:queue.slice(0,100)}),signal:controller.signal})}finally{clearTimeout(timeout)}
-  if(!response.ok){const detail=await response.json().catch(()=>({}));throw Error("API HTTP "+response.status+(detail.error?" · "+detail.error:""));}
+  try{response=await fetch(API_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+d.dbApiKey},body:JSON.stringify({deviceId,measurements:queue.slice(0,100)}),signal:controller.signal})}finally{clearTimeout(timeout)}
+  if(!response.ok){const detail=await response.json().catch(()=>({}));throw Error("API HTTP "+response.status+(detail.error?" · "+detail.error+(detail.detail?" ("+detail.detail+")":""):""));}
   const body=await response.json();
   if(!body.ok)throw Error("Respuesta inválida de API");
   const current=await chrome.storage.local.get("dbQueue");
