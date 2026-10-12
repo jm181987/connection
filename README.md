@@ -1,7 +1,9 @@
 # KNJ Internet Monitor
 
-Monitor HTTP automático cada 3 segundos desde un documento offscreen independiente del panel. Guarda 100 mediciones, muestra hora de la última prueba y envía notificaciones de cambios de conectividad confirmados por dos pruebas. El service worker recibe los resultados para gestionar icono y notificaciones.
+Extensión Chrome con monitoreo HTTP nominal cada 3 segundos, alertas locales y Telegram opcional.
 
-Instalación: descargar ZIP, descomprimir, chrome://extensions, Modo desarrollador, Cargar descomprimida. Tras actualizar archivos, pulsar Recargar. Mantener Chrome abierto y permitir notificaciones.
+## Telegram
+Abrir extensión → Alertas por Telegram → activar, ingresar token privado y chat ID → Guardar configuración → Enviar mensaje de prueba. El token se almacena localmente en Chrome y NO en el repositorio. Si se corta Internet, no es posible enviar mensajes a Telegram desde la computadora durante la desconexión. Se registra la caída y se envía el aviso pendiente junto al de recuperación al volver Internet. Si el equipo está apagado o Chrome cerrado, no hay supervisión.
 
-Si aparece «Monitor sin actividad», abrir Errores en chrome://extensions. Chrome puede suspender procesos o temporizadores y no garantiza 3 segundos exactos. Las mediciones son HTTP, no ping ICMP.
+## Instalar
+Descargar ZIP, descomprimir, abrir chrome://extensions, habilitar Modo desarrollador y Cargar descomprimida. Al actualizar archivos, pulsar Recargar. Las mediciones son HTTP, no ICMP.
