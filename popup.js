@@ -38,7 +38,7 @@ async function loadStats(){
  const button=$("statsRefresh");button.disabled=true;$("statsStatus").textContent="Consultando PostgreSQL…";
  try{
   const d=await chrome.storage.local.get(["dbEnabled","authToken","dbDeviceId"]);
-  if(!d.dbEnabled||!d.authToken||!d.dbDeviceId)throw Error("Iniciá sesión y activá PostgreSQL primero");
+  if(!d.authToken||!d.dbDeviceId)throw Error("Iniciá sesión para ver las mediciones guardadas");
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
   let response;
   try{response=await fetch("https://connection-smoky.vercel.app/api/stats?deviceId="+encodeURIComponent(d.dbDeviceId)+"&days="+$("statsDays").value,{headers:{Authorization:"Bearer "+d.authToken},signal:controller.signal})}finally{clearTimeout(timer)}
@@ -85,6 +85,7 @@ async function authSubmit(action){
   $("authStatus").textContent="Sesión iniciada. PostgreSQL activado.";
   await authView();
   await telegramLoad();
+  if($("statsPanel").open)loadStats();
   chrome.runtime.sendMessage({type:"DB_SYNC"}).catch(()=>{});
  }catch(e){$("authStatus").textContent="Error: "+e.message}
 }
@@ -96,9 +97,11 @@ $("authLogout").addEventListener("click",async()=>{
  await chrome.storage.local.set({dbEnabled:false});
  await authView();
  $("authStatus").textContent="Sesión cerrada";
+ $("latencyChart").replaceChildren();$("oscillationSummary").textContent="";$("statsStatus").textContent="Iniciá sesión para consultar el historial";
  if(authToken)fetch("https://connection-smoky.vercel.app/api/auth",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+authToken},body:JSON.stringify({action:"logout"})}).catch(()=>{});
 });
 authView();
+if($("statsPanel").open)loadStats();
 
 function drawOscillation(points){
  const svg=$("latencyChart"),ns="http://www.w3.org/2000/svg";
