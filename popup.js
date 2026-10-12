@@ -4,3 +4,34 @@ async function dbSave(){await chrome.storage.local.set({dbEnabled:$("dbEnabled")
 $("dbSave").addEventListener("click",dbSave);
 $("dbSync").addEventListener("click",async()=>{await dbSave();$("dbSync").disabled=true;$("dbStatus").textContent="Sincronizando…";try{const r=await chrome.runtime.sendMessage({type:"DB_SYNC"});$("dbStatus").textContent=r?.ok?(r.inProgress?"Envío automático en curso. Reintentá en unos segundos.":"API respondió · Procesadas: "+r.sent+" · Insertadas en PostgreSQL: "+(r.inserted??"—")+" · Pendientes: "+(r.pending??"—")):"Error: "+(r?.error||"Sin respuesta")}catch(e){$("dbStatus").textContent="Error: "+e.message}finally{$("dbSync").disabled=false}});
 dbLoad();
+
+async function loadStats(){
+ const button=$("statsRefresh");button.disabled=true;$("statsStatus").textContent="Consultando PostgreSQL…";
+ try{
+  const d=await chrome.storage.local.get(["dbEnabled","dbApiKey","dbDeviceId"]);
+  if(!d.dbEnabled||!d.dbApiKey||!d.dbDeviceId)throw Error("Activá PostgreSQL y guardá la clave API primero");
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  let response;
+  try{response=await fetch("https://connection-smoky.vercel.app/api/stats?deviceId="+encodeURIComponent(d.dbDeviceId)+"&days="+$("statsDays").value,{headers:{Authorization:"Bearer "+d.dbApiKey},signal:controller.signal})}finally{clearTimeout(timer)}
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error("API "+response.status+" · "+(body.error||"Sin respuesta")+(body.sqlstate?" ("+body.sqlstate+")":""));
+  const t=body.totals,n=Number(t.samples||0),up=Number(t.online_samples||0);
+  $("statsAvailability").textContent=n?(100*up/n).toFixed(2)+"%":"—";
+  $("statsLatency").textContent=t.avg_latency==null?"—":t.avg_latency+" ms";
+  $("statsOutages").textContent=String(t.outage_count||0);
+  const seconds=Number(t.outage_seconds||0);
+  $("statsDuration").textContent=seconds>=3600?(seconds/3600).toFixed(1)+" h":seconds>=60?Math.round(seconds/60)+" min":seconds+" s";
+  $("statsBars").replaceChildren();
+  const series=body.series||[];
+  const step=Math.max(1,Math.ceil(series.length/48));
+  for(let i=0;i<series.length;i+=step){
+   const chunk=series.slice(i,i+step),total=chunk.reduce((a,x)=>a+Number(x.samples),0),online=chunk.reduce((a,x)=>a+Number(x.online_samples),0),pct=total?online/total*100:0;
+   const bar=document.createElement("div");bar.className="stats-bar";bar.style.height=Math.max(3,pct)+"%";bar.style.background=pct>=99?"#4ade80":pct>=90?"#fbbf24":"#fb7185";bar.title=new Date(chunk[0].bucket).toLocaleString()+" · "+pct.toFixed(1)+"% · "+total+" mediciones";$("statsBars").append(bar);
+  }
+  $("statsNote").textContent="Mediciones: "+n+" · Última registrada: "+(t.last_sample?new Date(t.last_sample).toLocaleString():"—")+" · No se computan intervalos sin muestras.";
+  $("statsStatus").textContent=n?"Datos cargados correctamente":"Sin mediciones en este período";
+ }catch(e){$("statsStatus").textContent="Error: "+(e.name==="AbortError"?"Tiempo de espera agotado":e.message)}finally{button.disabled=false}
+}
+$("statsRefresh").addEventListener("click",loadStats);
+$("statsDays").addEventListener("change",loadStats);
+$("statsPanel").addEventListener("toggle",()=>{if($("statsPanel").open)loadStats()});
