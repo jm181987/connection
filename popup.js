@@ -104,28 +104,31 @@ authView();
 if($("statsPanel").open)loadStats();
 
 function drawOscillation(points){
- const svg=$("latencyChart"),ns="http://www.w3.org/2000/svg";
- svg.replaceChildren();
- const make=(name,attrs)=>{const e=document.createElementNS(ns,name);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));svg.append(e);return e};
- const valid=points.filter(p=>p.avg_ms!==null&&p.avg_ms!==undefined);
- if(!points.length){$("oscillationSummary").textContent="No hay datos en este período";return}
- const values=valid.map(p=>Number(p.max_ms||p.avg_ms)),cap=Math.max(150,Math.min(3000,Math.ceil((Math.max(0,...values)*1.1)/50)*50));
- const W=600,H=190,left=38,right=10,top=12,bottom=26,w=W-left-right,h=H-top-bottom;
+ const svg=$("latencyChart"),ns="http://www.w3.org/2000/svg";svg.replaceChildren();
+ const add=(tag,attrs,parent=svg)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));parent.append(e);return e};
+ const valid=points.filter(p=>p.avg_ms!=null&&Number(p.online_samples)>0);
+ if(!points.length||!valid.length){$("oscillationSummary").textContent=points.length?"No hay mediciones de latencia con respuesta en este período":"No hay mediciones guardadas en este período";return}
+ const maximum=Math.max(...valid.map(p=>Number(p.max_ms??p.avg_ms)));
+ const cap=Math.max(50,Math.ceil(maximum*1.1/25)*25),W=600,H=210,left=45,right=12,top=12,bottom=33,w=W-left-right,h=H-top-bottom;
  const x=i=>left+(points.length===1?w/2:i*w/(points.length-1));
- const y=ms=>top+h-Math.min(cap,Math.max(0,ms))/cap*h;
- for(let j=0;j<=4;j++){const v=Math.round(cap*j/4);make("line",{x1:left,y1:y(v),x2:W-right,y2:y(v),stroke:"#2c415b","stroke-width":1});const label=make("text",{x:1,y:y(v)+4,fill:"#a8bbd4","font-size":11});label.textContent=v+" ms"}
- let previous=null,offline=0,spikes=0;
+ const y=v=>top+h-Math.max(0,Math.min(cap,Number(v)))/cap*h;
+ for(let k=0;k<=4;k++){const v=Math.round(cap*k/4);add("line",{x1:left,y1:y(v),x2:W-right,y2:y(v),stroke:"#304865"});add("text",{x:2,y:y(v)+4,fill:"#b9c8e2","font-size":12}).textContent=v+" ms"}
+ let last=null,spikes=0,offline=0,largestSwing=0;
  points.forEach((p,i)=>{
-  const px=x(i),total=Number(p.samples||0),up=Number(p.online_samples||0);
-  if(!up){offline++;make("line",{x1:px,y1:top,x2:px,y2:top+h,stroke:"#fb7185","stroke-width":Math.max(2,Math.min(8,w/Math.max(1,points.length))),opacity:.8});previous=null;return}
-  const avg=Number(p.avg_ms),low=Number(p.min_ms),high=Number(p.max_ms),py=y(avg);
-  if(high>=400)spikes++;
-  if(previous){make("line",{x1:previous.x,y1:previous.y,x2:px,y2:py,stroke:"#60a5fa","stroke-width":2})}
-  if(points.length<=150)make("line",{x1:px,y1:y(low),x2:px,y2:y(high),stroke:"#93c5fd","stroke-width":1,opacity:.55});
-  const color=avg<150?"#4ade80":avg<400?"#fbbf24":"#fb7185";
-  const dot=make("circle",{cx:px,cy:py,r:points.length>130?1.6:3,fill:color});
-  const title=document.createElementNS(ns,"title");title.textContent=new Date(p.bucket).toLocaleString()+" · Promedio "+avg+" ms · Mín "+low+" ms · Máx "+high+" ms · Variación "+(p.jitter_ms??"—")+" ms · "+up+"/"+total+" disponibles";dot.append(title);
-  previous={x:px,y:py};
+  const xx=x(i),up=Number(p.online_samples||0),total=Number(p.samples||0);
+  if(!up){offline++;add("line",{x1:xx,y1:top,x2:xx,y2:top+h,stroke:"#fb7185","stroke-width":3});last=null;return}
+  const avg=Number(p.avg_ms),lo=Number(p.min_ms),hi=Number(p.max_ms),swing=hi-lo;largestSwing=Math.max(largestSwing,swing);
+  if(hi>=400)spikes++;
+  const color=hi>=400?"#fb7185":hi>=150?"#fbbf24":"#4ade80";
+  // Siempre mostrar el rango real, incluso cuando haya cientos de intervalos.
+  const width=Math.max(1,Math.min(6,w/points.length*.65));
+  const range=add("line",{x1:xx,y1:y(hi),x2:xx,y2:y(lo),stroke:color,"stroke-width":width,opacity:.9});
+  const tip=new Date(p.bucket).toLocaleString()+" | mínimo "+lo+" ms | promedio "+avg+" ms | máximo "+hi+" ms | oscilación "+swing+" ms | "+up+"/"+total+" respuestas";
+  add("title",{} ,range).textContent=tip;
+  if(last)add("line",{x1:last.x,y1:last.y,x2:xx,y2:y(avg),stroke:"#60a5fa","stroke-width":2,opacity:.95});
+  const dot=add("circle",{cx:xx,cy:y(avg),r:points.length>180?1.4:2.7,fill:"#e0f2fe"});add("title",{},dot).textContent=tip;
+  last={x:xx,y:y(avg)};
  });
- $("oscillationSummary").textContent="Picos de latencia (máx ≥400 ms): "+spikes+" · Intervalos completamente sin respuesta: "+offline+" · Escala hasta "+cap+" ms. Las franjas sin mediciones no se consideran caídas.";
+ if(points.length){const first=new Date(points[0].bucket),lastDate=new Date(points[points.length-1].bucket);add("text",{x:left,y:H-8,fill:"#a8bbd4","font-size":12}).textContent=first.toLocaleString();add("text",{x:W-right,y:H-8,fill:"#a8bbd4","font-size":12,"text-anchor":"end"}).textContent=lastDate.toLocaleString()}
+ $("oscillationSummary").textContent="Rango de latencia (líneas de colores): mínimo a máximo por intervalo. Línea azul: promedio. Mayor oscilación: "+largestSwing+" ms · Intervalos con picos ≥400 ms: "+spikes+" · Sin respuesta: "+offline+".";
 }
