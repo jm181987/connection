@@ -1,19 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Internet Ping Test",
-  "version": "1.0.0",
-  "description": "Monitoreo de conectividad y latencia HTTP",
+  "name": "KNJ Internet Monitor",
+  "version": "1.1.0",
+  "description": "Monitor de conectividad y calidad HTTP con alertas discretas",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://www.google.com/*",
     "https://www.cloudflare.com/*"
   ],
+  "icons": {
+    "32": "icon32.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Internet Ping Test"
+    "default_title": "KNJ Internet Monitor",
+    "default_icon": {
+      "32": "icon32.png"
+    }
   },
   "background": {
     "service_worker": "background.js"

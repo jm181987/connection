@@ -1,13 +1,8 @@
-# Internet Ping Test
+# KNJ Internet Monitor
 
-Extensión Chrome Manifest V3 para comprobar conectividad y latencia mediante peticiones HTTP (no ICMP).
+Extensión Chrome Manifest V3. Monitoreo HTTP cada minuto hasta desactivarlo; sigue funcionando con el popup cerrado mientras Chrome esté en ejecución. Avisos del sistema solo al cambiar el estado o calidad, con interruptores independientes. Icono KNJ, indicador de latencia y hasta 100 mediciones guardadas localmente.
 
 ## Instalar
-1. Descargar el repositorio y descomprimirlo.
-2. Abrir `chrome://extensions`.
-3. Activar **Modo desarrollador**.
-4. Pulsar **Cargar descomprimida** y seleccionar la carpeta del repositorio.
+Descargar ZIP del repositorio, descomprimir, abrir chrome://extensions, activar Modo desarrollador y elegir Cargar descomprimida.
 
-El test se ejecuta al instalar, al iniciar el navegador, cada minuto y al pulsar **Probar ahora**. Guarda localmente las últimas 30 mediciones. No necesita servidor ni base de datos.
-
-Los tiempos HTTP son aproximados y no representan un ping ICMP real.
+**Importante:** mide tiempo de respuesta HTTP, no ICMP ni velocidad de descarga. Si Chrome está cerrado o suspendido no puede medir ni notificar. Las notificaciones requieren que el sistema operativo permita notificaciones de Chrome. Los umbrales orientativos son buena <150 ms, regular 150–399 ms, mala >=400 ms. Los bloqueos de los servidores de prueba pueden causar falsas alarmas.
