@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "KNJ Internet Monitor",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Monitor HTTP cada 3 segundos con alertas discretas",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -13,7 +13,8 @@
   "host_permissions": [
     "https://www.google.com/*",
     "https://www.cloudflare.com/*",
-    "https://api.telegram.org/*"
+    "https://api.telegram.org/*",
+    "https://connection-smoky.vercel.app/*"
   ],
   "icons": {
     "32": "icon32.png"
