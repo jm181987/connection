@@ -18,13 +18,10 @@ module.exports=async(req,res)=>{
  const client=await pool.connect().catch(()=>null);
  if(!client)return res.status(503).json({error:"database_unavailable"});
  try{
-  await client.query("BEGIN");
-  let inserted=0;
-  for(const [id,time,ok,quality,ms] of rows){
-   const r=await client.query("INSERT INTO internet_measurements (device_id,observed_at,online,quality,latency_ms) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (device_id,observed_at) DO NOTHING",[id,time,ok,quality,ms]);
-   inserted+=r.rowCount;
-  }
-  await client.query("COMMIT");
+  const params=rows.flat();
+  const placeholders=rows.map((_,i)=>"("+[1,2,3,4,5].map(n=>"$"+(i*5+n)).join(",")+")").join(",");
+  const result=await client.query("INSERT INTO internet_measurements (device_id,observed_at,online,quality,latency_ms) VALUES "+placeholders+" ON CONFLICT (device_id,observed_at) DO NOTHING",params);
+  const inserted=result.rowCount;
   return res.status(200).json({ok:true,received:rows.length,inserted});
- }catch(e){await client.query("ROLLBACK").catch(()=>{});console.error("DB ingestion error",{code:e.code||"unknown",constraint:e.constraint||null});const known={"42P01":"missing_table","42703":"missing_column","42501":"permission_denied","23514":"check_constraint_failed","23505":"unique_constraint_failed","22P02":"invalid_data_type","28P01":"authentication_failed","3D000":"database_not_found","08006":"connection_lost"};return res.status(503).json({error:"database_write_failed",detail:known[e.code]||"sql_error",sqlstate:e.code||null})}finally{client.release()}
+ }catch(e){console.error("DB ingestion error",{code:e.code||"unknown",constraint:e.constraint||null});const known={"42P01":"missing_table","42703":"missing_column","42501":"permission_denied","23514":"check_constraint_failed","23505":"unique_constraint_failed","22P02":"invalid_data_type","28P01":"authentication_failed","3D000":"database_not_found","08006":"connection_lost"};return res.status(503).json({error:"database_write_failed",detail:known[e.code]||"sql_error",sqlstate:e.code||null})}finally{client.release()}
 };
