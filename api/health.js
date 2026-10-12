@@ -1,0 +1,1 @@
+module.exports=async(req,res)=>{res.setHeader("Cache-Control","no-store");res.status(200).json({ok:true,service:"knj-internet-monitor-api",databaseConfigured:Boolean(process.env.DATABASE_URL),ingestConfigured:Boolean(process.env.INGEST_API_KEY)})};

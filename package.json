@@ -1,0 +1,9 @@
+{
+  "name": "knj-internet-monitor-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel API for KNJ Internet Monitor",
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
