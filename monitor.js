@@ -1,0 +1,1 @@
+let timer=null;async function tick(){try{await chrome.runtime.sendMessage({type:"TICK"})}catch{}}async function sync(){const {enabled=true}=await chrome.storage.local.get("enabled");if(timer){clearInterval(timer);timer=null}if(enabled){tick();timer=setInterval(tick,3000)}}chrome.storage.onChanged.addListener((changes,area)=>{if(area==="local"&&changes.enabled)sync()});sync();
