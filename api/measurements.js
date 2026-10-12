@@ -26,5 +26,5 @@ module.exports=async(req,res)=>{
   }
   await client.query("COMMIT");
   return res.status(200).json({ok:true,received:rows.length,inserted});
- }catch(e){await client.query("ROLLBACK").catch(()=>{});console.error("DB ingestion error",e.code||"unknown");return res.status(503).json({error:"database_write_failed"})}finally{client.release()}
+ }catch(e){await client.query("ROLLBACK").catch(()=>{});console.error("DB ingestion error",{code:e.code||"unknown",constraint:e.constraint||null});const known={"42P01":"missing_table","42703":"missing_column","42501":"permission_denied","23514":"check_constraint_failed","23505":"unique_constraint_failed","22P02":"invalid_data_type","28P01":"authentication_failed","3D000":"database_not_found","08006":"connection_lost"};return res.status(503).json({error:"database_write_failed",detail:known[e.code]||"sql_error",sqlstate:e.code||null})}finally{client.release()}
 };
