@@ -53,3 +53,9 @@ Los reportes de errores deben incluir versión de Chrome, pasos para reproducir,
 ---
 
 Desarrollado por **KNJ** · [KNJ Marketing](https://www.marketingknj.site/)
+
+## Validación de versiones
+
+Al modificar el sistema de mediciones, comprueba que las gráficas históricas y los intervalos por hora, día y mes utilicen datos realmente almacenados y que las variaciones de latencia se reflejen de forma coherente. Documenta los permisos de Chrome y cualquier integración externa antes de distribuir la extensión.
+
+Mantenimiento: **KNJ** · [KNJ Marketing](https://www.marketingknj.site/).
